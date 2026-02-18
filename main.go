@@ -5,31 +5,22 @@ import "fmt"
 // struct
 type Elevator struct {
 	currentFloor int
+	requests     []int
 }
 
 // methon on pointer
-
-// Here we created a method which will get memory add for struct as pointer and then accessing the struct variables aka inheritence
-func (e *Elevator) MoveUp() {
-	e.currentFloor++
-}
-
-func (e *Elevator) MoveDown() {
-	e.currentFloor--
+func (e *Elevator) addRequests(floor int) {
+	// append - add floor to requests array
+	e.requests = append(e.requests, floor)
 }
 
 func main() {
 
 	e := Elevator{currentFloor: 1}
-	fmt.Println("Now at floor:", e.currentFloor)
 
-	e.MoveUp()
-	fmt.Println("Now at floor:", e.currentFloor)
+	e.addRequests(4)
+	e.addRequests(2)
+	e.addRequests(8)
 
-	e.MoveUp()
-	fmt.Println("Now at floor:", e.currentFloor)
-
-	e.MoveDown()
-	fmt.Println("Now at floor:", e.currentFloor)
-
+	fmt.Println("Requests:", e.requests)
 }

@@ -29,6 +29,20 @@ func (e *Elevator) step() {
 	}
 }
 
+func render(e *Elevator, maxFloors int) {
+	fmt.Print("\033[H\033[2J")
+
+	for i := maxFloors; i >= 1; i-- {
+		if i == e.currentFloor {
+			fmt.Printf("Floor %2d | [ E ]\n", i)
+		} else {
+			fmt.Printf("Floor %2d | [   ]\n", i)
+		}
+	}
+
+	fmt.Println("\nQueue:", e.requests)
+}
+
 func main() {
 
 	e := Elevator{currentFloor: 1, requests: []int{4, 10, 3}}
@@ -40,7 +54,7 @@ func main() {
 		}
 
 		e.step()
-		fmt.Println("Current Floor:", e.currentFloor, "| Requests:", e.requests)
-		time.Sleep(800 * time.Millisecond)
+		render(&e, 10)
+		time.Sleep(700 * time.Millisecond)
 	}
 }

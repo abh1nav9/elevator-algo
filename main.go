@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // struct
 type Elevator struct {
@@ -8,19 +11,36 @@ type Elevator struct {
 	requests     []int
 }
 
-// methon on pointer
-func (e *Elevator) addRequests(floor int) {
-	// append - add floor to requests array
-	e.requests = append(e.requests, floor)
+func (e *Elevator) step() {
+	if len(e.requests) == 0 {
+		return
+	}
+
+	target := e.requests[0]
+
+	if e.currentFloor < target {
+		e.currentFloor++
+	} else if e.currentFloor > target {
+		e.currentFloor--
+	} else {
+		fmt.Println("Reached floor:", target)
+		// e.requests[1:] is used to remove first element from []requests
+		e.requests = e.requests[1:]
+	}
 }
 
 func main() {
 
-	e := Elevator{currentFloor: 1}
+	e := Elevator{currentFloor: 1, requests: []int{4, 10, 3}}
 
-	e.addRequests(4)
-	e.addRequests(2)
-	e.addRequests(8)
+	for {
+		if len(e.requests) == 0 {
+			fmt.Println("All requests completed. Elevator is idle at floor:", e.currentFloor)
+			break
+		}
 
-	fmt.Println("Requests:", e.requests)
+		e.step()
+		fmt.Println("Current Floor:", e.currentFloor, "| Requests:", e.requests)
+		time.Sleep(800 * time.Millisecond)
+	}
 }

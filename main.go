@@ -10,11 +10,20 @@ import (
 	"time"
 )
 
+type direction int
+
+const (
+	IDLE direction = iota
+	UP
+	DOWN
+)
+
 // struct
 type Elevator struct {
 	mu           sync.Mutex
 	currentFloor int
 	requests     []int
+	direction    direction
 }
 
 func (e *Elevator) addRequest(floor int) {
@@ -35,49 +44,73 @@ func (e *Elevator) step() {
 	defer e.mu.Unlock()
 
 	if len(e.requests) == 0 {
+		e.direction = IDLE
 		return
 	}
 
 	target := e.requests[0]
 
 	if e.currentFloor < target {
+		e.direction = UP
 		e.currentFloor++
 	} else if e.currentFloor > target {
+		e.direction = DOWN
 		e.currentFloor--
 	} else {
 		fmt.Println("Reached floor:", target)
 		e.requests = e.requests[1:]
+		if len(e.requests) == 0 {
+			e.direction = IDLE
+		}
+	}
+}
+
+func (d direction) String() string {
+	switch d {
+	case UP:
+		return "UP"
+	case DOWN:
+		return "DOWN"
+	default:
+		return "IDLE"
 	}
 }
 
 func render(e *Elevator, maxFloors int) {
 	e.mu.Lock()
-	defer e.mu.Unlock()
+	currentFloor := e.currentFloor
+	queue := append([]int{}, e.requests...)
+	dir := e.direction
+	e.mu.Unlock()
 
 	// Only clear screen if elevator is moving
-	if len(e.requests) > 0 {
+	if len(queue) > 0 {
 		fmt.Print("\033[H\033[2J")
 	}
 
 	for i := maxFloors; i >= 1; i-- {
-		if i == e.currentFloor {
+		if i == currentFloor {
 			fmt.Printf("Floor %2d | [ E ]\n", i)
 		} else {
 			fmt.Printf("Floor %2d | [   ]\n", i)
 		}
 	}
 
-	if len(e.requests) == 0 {
-		fmt.Println("\nStatus: IDLE")
-		fmt.Println("Type: <floor> or go <floor> (e.g., 4 or go 4)")
+	fmt.Println()
+
+	if len(queue) == 0 {
+		fmt.Println("Status   : IDLE")
+		fmt.Println("Direction:", dir)
+		fmt.Println("Type     : <floor> or go <floor> (e.g., 4 or go 4)")
 	} else {
-		fmt.Println("\nQueue:", e.requests)
+		fmt.Println("Queue    :", queue)
+		fmt.Println("Direction:", dir)
 	}
 }
 
 func main() {
 
-	e := Elevator{currentFloor: 1}
+	e := Elevator{currentFloor: 1, direction: IDLE}
 	maxFloors := 10
 	lastFloor := -1
 	lastQueueLen := -1

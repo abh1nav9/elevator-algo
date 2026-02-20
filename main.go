@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,6 +27,13 @@ type Elevator struct {
 	direction    direction
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 func (e *Elevator) addRequest(floor int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -39,6 +47,82 @@ func (e *Elevator) addRequest(floor int) {
 	e.requests = append(e.requests, floor)
 }
 
+func (e *Elevator) nextTarget() (int, bool) {
+	if len(e.requests) == 0 {
+		return 0, false
+	}
+
+	curr := e.currentFloor
+
+	var above []int
+	var below []int
+
+	for _, r := range e.requests {
+		if r > curr {
+			above = append(above, r)
+		} else if r < curr {
+			below = append(below, r)
+		} else {
+			return r, true
+		}
+	}
+
+	// ascending
+	sort.Ints(above)
+	// descending
+	sort.Sort(sort.Reverse(sort.IntSlice(below)))
+
+	// Decide based on direction
+	if e.direction == UP {
+		if len(above) > 0 {
+			return above[0], true
+		}
+
+		// nothing above, reverse
+		e.direction = DOWN
+
+		if len(below) > 0 {
+			return below[0], true
+		}
+	}
+
+	if e.direction == DOWN {
+		if len(below) > 0 {
+			return below[0], true
+		}
+
+		// nothing below, reverse
+		e.direction = UP
+
+		if len(above) > 0 {
+			return above[0], true
+		}
+	}
+
+	// IDLE → pick closest
+	if e.direction == IDLE {
+		closest := e.requests[0]
+		minDist := abs(curr - closest)
+
+		for _, r := range e.requests {
+			if abs(curr-r) < minDist {
+				closest = r
+				minDist = abs(curr - r)
+			}
+		}
+
+		if closest > curr {
+			e.direction = UP
+		} else if closest < curr {
+			e.direction = DOWN
+		}
+
+		return closest, true
+	}
+
+	return 0, false
+}
+
 func (e *Elevator) step() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -48,7 +132,10 @@ func (e *Elevator) step() {
 		return
 	}
 
-	target := e.requests[0]
+	target, ok := e.nextTarget()
+	if !ok {
+		return
+	}
 
 	if e.currentFloor < target {
 		e.direction = UP
@@ -58,10 +145,15 @@ func (e *Elevator) step() {
 		e.currentFloor--
 	} else {
 		fmt.Println("Reached floor:", target)
-		e.requests = e.requests[1:]
-		if len(e.requests) == 0 {
-			e.direction = IDLE
+
+		// Remove target from requests
+		newReq := []int{}
+		for _, r := range e.requests {
+			if r != target {
+				newReq = append(newReq, r)
+			}
 		}
+		e.requests = newReq
 	}
 }
 
